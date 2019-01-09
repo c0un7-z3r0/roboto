@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Roboto
+namespace RobotoChatBot
 {
     /// <summary>
     /// represents a group chat and all the data stored abotu it. Doesnt exist for PERSON chats, just group
@@ -11,7 +11,7 @@ namespace Roboto
     public class chat
     {
         public long chatID;
-        public bool enabled = false; //assume chats are disabled until we get a /start
+        //public bool enabled = false; //assume chats are disabled until we get a /start - deprecated. Uses "muted"
         public DateTime lastupdate = DateTime.Now; //track when our last message was. Discard idle chats.
         public string chatTitle = "";
         public List<Modules.RobotoModuleChatDataTemplate> chatData = new List<Modules.RobotoModuleChatDataTemplate>();
@@ -37,6 +37,7 @@ namespace Roboto
                 plugin.initChatData(this);
                 plugin.validateChatData(this);
                 //find and validate the data
+
             }
 
         }
@@ -46,14 +47,14 @@ namespace Roboto
             lastupdate = DateTime.Now;
         }
 
-        public void enable()
+        /*deprecated public void enable()
         {
             enabled = true;
         }
         public void disable()
         {
             enabled = false;
-        }
+        }*/
 
         public void addChatData(Modules.RobotoModuleChatDataTemplate data)
         {
@@ -69,7 +70,7 @@ namespace Roboto
             }
             if (found != null)
             {
-                Console.WriteLine("Chat data Already exists!");
+                Roboto.log.log("Chat data Already exists!");
                 throw new InvalidOperationException("Chat data Already exists!");
             }
 
@@ -88,7 +89,7 @@ namespace Roboto
                 }
             }
 
-            Console.WriteLine("Couldnt find plugin data of type " + typeof(T).ToString());
+            Roboto.log.log("Couldnt find plugin data of type " + typeof(T).ToString());
             return default(T);
         }
 
@@ -103,8 +104,8 @@ namespace Roboto
                 }
             }
             if (!supressWarning)
-            { 
-                Console.WriteLine("Couldnt find plugin data of type " + t.ToString());
+            {
+                Roboto.log.log("Couldnt find plugin data of type " + t.ToString());
             }
             return null;
         }

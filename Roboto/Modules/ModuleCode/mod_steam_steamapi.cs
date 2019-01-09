@@ -10,7 +10,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Roboto.Modules
+namespace RobotoChatBot.Modules
 {
     /// <summary>
     /// Methods for interacting with the Steam API. 
@@ -249,7 +249,7 @@ namespace Roboto.Modules
 
                     //if (path != "ok" || result != "True")
                     //{
-                    //    Console.WriteLine("Error recieved sending message!");
+                    //    Console.WriteLine("Error received sending message!");
                     //throw new WebException("Failure code from web service");
 
                     //}

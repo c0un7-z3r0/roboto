@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace Roboto.Modules
+namespace RobotoChatBot.Modules
 {
 
     public enum xyzzy_Statuses { Stopped, useDefaults, SetGameLength, setPackFilter, setMinHours, setMaxHours, cardCastImport, Invites, Question, Judging, waitingForNextHand }
@@ -48,8 +48,7 @@ namespace Roboto.Modules
         public List<String> remainingQuestions = new List<string>();
         public string currentQuestion;
         public List<String> remainingAnswers = new List<string>();
-
-
+        
         //handled by super
         //internal mod_xyzzy_chatdata() { }
 
@@ -75,6 +74,7 @@ namespace Roboto.Modules
             remainingAnswers.Clear();
             remainingQuestions.Clear();
             lastPlayerAsked = -1;
+            Roboto.Settings.clearExpectedReplies(chatID, typeof(mod_xyzzy));
         }
 
         //when the status is changed, make a note of the date.
@@ -422,7 +422,7 @@ namespace Roboto.Modules
             int outstanding = outstandingResponses().Count;
             if (outstanding == 0)
             {
-                log("All answers recieved, judging", logging.loglevel.verbose);
+                log("All answers received, judging", logging.loglevel.verbose);
                 beginJudging();
             }
             else
@@ -692,7 +692,7 @@ namespace Roboto.Modules
 
                 //get all the responses for the keyboard, and the chat message
                 List<string> responses = new List<string>();
-                string chatMsg = "All answers recieved! The honourable " + tzar.name + " presiding." + "\n\r" +
+                string chatMsg = "All answers received! The honourable " + tzar.name + " presiding." + "\n\r" +
                     "Question: " + q.text + "\n\r" + "\n\r";
                 string missingRepliestxt = "Skipped these chumps: ";
                 bool missingReplies = false;
@@ -871,7 +871,7 @@ namespace Roboto.Modules
                 {
                     case xyzzy_Statuses.Question:
                         response += "The current question is : " + "\n\r" +
-                            getLocalData().getQuestionCard(currentQuestion).text + "\n\r" +
+                            Helpers.common.escapeMarkDownChars(getLocalData().getQuestionCard(currentQuestion).text) + "\n\r" +
                             "Still waiting on the following players :";
                         bool unsentMessages = false;
                         bool first = true;
@@ -882,7 +882,7 @@ namespace Roboto.Modules
                                 mod_xyzzy_player p = getPlayer(r.userID);
                                 if (p != null)
                                 {
-                                    response += (first? " " : ", ") + p.ToString();
+                                    response += (first? " " : ", ") + p.ToString(true);
                                     if (first) { first = false; }
                                     if (!r.isSent())
                                     {
@@ -913,9 +913,17 @@ namespace Roboto.Modules
                 }
             }
 
-            TelegramAPI.SendMessage(chatID, response, null, true, -1 , true);
-            check();
 
+            long messageID = TelegramAPI.SendMessage(chatID, response, null, true, -1 , true);
+            if (messageID == -403)
+            {
+                log("Bot blocked - abandoning", logging.loglevel.high);
+                reset();
+            }
+            else
+            {
+                check();
+            }
         }
 
         /// <summary>
@@ -1167,9 +1175,23 @@ namespace Roboto.Modules
                 log("Score change failed for some reason", logging.loglevel.high);
             }
             return success;
+            
+        }
 
+        public override void startupChecks()
+        {
+            //TODO - add a longop here
+            int i = packFilterIDs.Count();
+            if (i > 250) //i.e enough that its stupid
+            {
+                packFilterIDs.Clear();
+                packFilterIDs.Add(mod_xyzzy.AllPacksEnabledID);
+                log("Replaced large filter list with allPacks flag ", logging.loglevel.high);
+            }
 
-
+            packFilterIDs = packFilterIDs.Distinct().ToList();
+            log("Removed " + (i - packFilterIDs.Count()) + " filters (now " + packFilterIDs.Count() + ")", logging.loglevel.verbose);
+            
         }
 
         /// <summary>
@@ -1256,8 +1278,7 @@ namespace Roboto.Modules
                 log(" Removed expected reply " + r.userID + "\\" + r.pluginType.ToString() + "\\" + r.messageData + ".");
             }
 
-            //todo - Remove non-existant cards anywhere (e.g. if a sync has recently happened)
-
+            
 
             //do we have any duplicate cards? rebuild the list
             int count_q = remainingQuestions.Count;
@@ -1373,8 +1394,16 @@ namespace Roboto.Modules
 
                     if (reask)
                     {
-                        beginJudging(true);
-                        log("Redid judging", logging.loglevel.critical);
+                        if (statusChangedTime < DateTime.Now.Subtract(TimeSpan.FromDays(30))) 
+                        {
+                            log("Dormant game, abandoning", logging.loglevel.critical);
+                            reset();
+                        }
+                        else
+                        {
+                            beginJudging(true);
+                            log("Redid judging", logging.loglevel.critical);
+                        }
                     }
                     else
                     {
@@ -1424,7 +1453,10 @@ namespace Roboto.Modules
                     break;
                     
                 case xyzzy_Statuses.Stopped:
-                    //reset(); --dont want to do this, as if we have reached the end of the game, want to be able to resume with a /extend
+                    //do we have any game related ERs outstanding? 
+                    Roboto.Settings.clearExpectedReplies(chatID, typeof(mod_xyzzy));
+
+
                     break;
             }
             
@@ -1519,10 +1551,11 @@ namespace Roboto.Modules
             {
                 packFilterIDs.Clear();
 
-                foreach(Helpers.cardcast_pack pack in localData.getPackFilterList())
+                packFilterIDs.Add(mod_xyzzy.AllPacksEnabledID);
+                /*NOOOPE - use a placeholder instead foreach(Helpers.cardcast_pack pack in localData.getPackFilterList())
                 {
                     packFilterIDs.Add(pack.packID);
-                }
+                }*/
 
                 //packFilter.AddRange(localData.getPackFilterList());
             }
@@ -1547,6 +1580,7 @@ namespace Roboto.Modules
                 else
                 {
                     packFilterIDs.Add(chosenPack.packID);
+                    chosenPack.picked();
                 }
             }
 

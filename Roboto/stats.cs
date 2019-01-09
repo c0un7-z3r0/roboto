@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+//using System.Windows.Media;
 using System.Drawing;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.IO;
 
-namespace Roboto
+namespace RobotoChatBot
 {
 
     /// <summary>
@@ -21,10 +22,10 @@ namespace Roboto
         public stats.displaymode displayMode = stats.displaymode.line;
         public stats.statmode statMode = stats.statmode.increment;
         public List<statSlice> statSlices = new List<statSlice>();
-        Color c = Color.Blue;
+        System.Drawing.Color c = System.Drawing.Color.Blue;
 
         internal statType() { }
-        public statType(string name, string moduleType, Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = stats.statmode.increment)
+        public statType(string name, string moduleType, System.Drawing.Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = stats.statmode.increment)
         {
             this.name = name;
             this.moduleType = moduleType;
@@ -32,7 +33,7 @@ namespace Roboto
             this.statMode = statMode;
         }
 
-        public void updateDisplaySettings(Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = stats.statmode.increment)
+        public void updateDisplaySettings(System.Drawing.Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = stats.statmode.increment)
         {
             this.c = c;
             this.displayMode = displayMode;
@@ -173,6 +174,30 @@ namespace Roboto
         /// </summary>
         public void startup()
         {
+            //TODO - temporary code - replace any incorrect namespaces following renamespacing and remove duplicates
+            List<statType> newTypes = new List<statType>();
+            foreach (statType t in statsList)
+            {
+                if (t.moduleType.StartsWith("Roboto."))
+                {
+                    t.moduleType = "RobotoChatBot." + t.moduleType.Remove(0, 7);
+                }
+
+                if (newTypes.Where(x => x.moduleType == t.moduleType && x.name == t.name).ToList().Count() > 0)
+                {
+                    Roboto.log.log("Stat type " + t.moduleType + " already exists! Dropping", logging.loglevel.critical);
+                }
+                else
+                {
+                    newTypes.Add(t);
+                }
+                
+            }
+            //swap in the rebuild list
+            statsList = newTypes;
+
+
+
             registerStatType("Startup", typeof(Roboto), Color.LawnGreen, displaymode.bar);
             registerStatType("Incoming Msgs", typeof(TelegramAPI), Color.Blue );
             registerStatType("Outgoing Msgs", typeof(TelegramAPI), Color.Purple);
@@ -184,7 +209,7 @@ namespace Roboto
         }
 
 
-        public void registerStatType(string name, Type moduleType, Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = statmode.increment )
+        public void registerStatType(string name, Type moduleType, System.Drawing.Color c, stats.displaymode displayMode = stats.displaymode.line, stats.statmode statMode = statmode.increment )
         {
             statType existing = getStatType(name, moduleType.ToString());
             if (existing != null)
@@ -216,7 +241,7 @@ namespace Roboto
 
         private statType getStatType(string name, string moduleType)
         {
-            List<statType> matches = statsList.Where(x => x.name == name && x.moduleType == moduleType.ToString()).ToList();
+            List<statType> matches = statsList.Where(x => x.name == name && x.moduleType == moduleType).ToList();
             if (matches.Count == 1 ) { return matches[0]; }
             else if (matches.Count > 1 )
             {

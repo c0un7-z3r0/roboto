@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Windows.Media;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Roboto.Modules
+namespace RobotoChatBot.Modules
 {
 
     public abstract class RobotoModuleTemplate
@@ -89,7 +90,7 @@ namespace Roboto.Modules
         /// <returns>A boolean indicating whether the plugin dealt with the reply or not. </returns>
         public virtual bool replyReceived(ExpectedReply e, message m, bool messageFailed = false)
         {
-            log("Plugin " + GetType().ToString() + " recieved a reply, but doesnt override replyRecieved", logging.loglevel.critical);
+            log("Plugin " + GetType().ToString() + " received a reply, but doesnt override replyReceived", logging.loglevel.critical);
             return false;
         }
         /// <summary>
@@ -117,7 +118,7 @@ namespace Roboto.Modules
         /// <param name="level"></param>
         /// <param name="colour"></param>
         /// <param name="noLineBreak"></param>
-        public void log (string text, logging.loglevel level = logging.loglevel.normal, ConsoleColor colour = ConsoleColor.White, bool noLineBreak = false)
+        public void log (string text, logging.loglevel level = logging.loglevel.normal, Color? colour = null, bool noLineBreak = false)
         {
             Roboto.log.log( text, level, colour, noLineBreak, false, false, false, 2);
         }
